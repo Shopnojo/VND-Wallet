@@ -108,7 +108,7 @@ fun VndWalletApp() {
             } }
         ) { pad ->
             when (tab) {
-                0 -> WalletScreen(state, dark, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) }, { val target = state.physicalCash; val current = state.availableBalance; save(state.copy(balanceAdjustment = state.balanceAdjustment + target - current, inventoryNeedsReconciliation = false)) })
+                0 -> WalletScreen(state, dark, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) }, { val target = state.physicalCash; save(state.copy(balanceAdjustment = target + state.totalSpent - state.initialCash - state.addedCash, inventoryNeedsReconciliation = false)) })
                 1 -> ExpensesScreen(state, Modifier.padding(pad), { editing = it; dialog = "expense" }, { e ->
                     val hasNotes = e.notesPaid.isNotEmpty() || e.changeNotes.isNotEmpty()
                     val restored = if (hasNotes) adjustDenominations(state.denominations, e, false) else state.denominations
