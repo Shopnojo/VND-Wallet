@@ -1,11 +1,30 @@
 # VND Wallet
 
-A private, offline-first Android companion for tracking Vietnamese dong cash, expenses, and INR equivalents during travel.
+A native Android companion for tracking Vietnamese dong cash and trip expenses, with INR equivalents and offline-first local storage.
 
-## Project status
+## Features
 
-The initial repository is being set up. The app will use Kotlin and Jetpack Compose, follow the Android system theme by default (with a manual override), and use a warm amber accent.
+- Dashboard with remaining balance, INR equivalent, cash-in total, total spending and recent purchases.
+- Add, edit and delete expenses. Record the amount handed over and the actual purchase price; change is calculated, while only the actual price is deducted.
+- Set initial cash and record additional cash.
+- Track physical cash by VND denomination.
+- Optional note-count fields for recording denominations handed over and received as change.
+- Exchange-rate reference refresh, saved last-known rate for offline use, last rate date and last checked time.
+- System, light and dark theme choices with a warm amber accent.
+- Expense records and settings persist locally on the device.
 
-## Build APK
+## Exchange rate
 
-GitHub Actions will build a debug APK on pushes and pull requests. Download the APK from the workflow run's **Artifacts** section.
+The app fetches VND→INR from The Rates API, which publishes daily reference rates derived from central-bank data. The app checks for a new rate on launch when the saved rate date differs from the current UTC date and also supports manual refresh. If the request fails, the saved rate remains available offline. Weekends and public holidays may show the previous working day's reference rate.
+
+Reference rates are indicative only. Money changers, banks, cards and payment providers may use different buy/sell rates and fees. Confirm actual exchange rates before exchanging cash.
+
+API reference: https://theratesapi.com/
+
+## Build
+
+GitHub Actions builds a debug APK on pushes and pull requests to the main branch. Download the ZIP from the workflow run's Artifacts section and extract app-debug.apk.
+
+## Data and limitations
+
+Wallet data is stored locally in app preferences and is not synced to a cloud account. The physical denomination count is a separate manual inventory; update it when you count your actual cash. The optional exact note-count fields save the note details alongside each expense, but do not automatically alter the denomination inventory.
