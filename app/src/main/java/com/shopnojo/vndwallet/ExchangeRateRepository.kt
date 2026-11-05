@@ -21,16 +21,13 @@ class ExchangeRateRepository(context: Context) {
     }
 
     fun isRefreshDue(): Boolean {
-        val lastDate = prefs.getString("rate_date", "") ?: ""
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }.format(Date())
-        return lastDate != today
+        val lastCheckedDate = prefs.getString("rate_checked_date", "") ?: ""
+        return lastCheckedDate != utcToday()
     }
 
     fun fetchLatest(): ExchangeRate {
-        // Free public reference-rate API. Its figures are indicative, not a cash-exchange quote.
-        val connection = (URL("https://theratesapi.com/api/latest?base=VND&symbols=INR").openConnection() as HttpURLConnection)
+        // Daily reference-rate API. Figures are indicative, not a cash-exchange quote.
+        val connection = URL("https://theratesapi.com/api/latest?base=VND&symbols=INR").openConnection() as HttpURLConnection
         connection.connectTimeout = 8_000
         connection.readTimeout = 8_000
         connection.requestMethod = "GET"
@@ -47,6 +44,7 @@ class ExchangeRateRepository(context: Context) {
             prefs.edit()
                 .putString("rate", rate.toString())
                 .putString("rate_date", date)
+                .putString("rate_checked_date", utcToday())
                 .putLong("rate_updated_at", fetched.fetchedAt)
                 .apply()
             return fetched
@@ -55,3 +53,7 @@ class ExchangeRateRepository(context: Context) {
         }
     }
 }
+
+private fun utcToday(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}.format(Date())
