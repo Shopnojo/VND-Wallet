@@ -252,40 +252,80 @@ fun VndWalletApp() {
 @Composable private fun ExpenseDialog(existing: Expense?, exact: Boolean, dismiss: () -> Unit, save: (String, Long, Long, Map<Long, Int>, Map<Long, Int>) -> Unit) {
     val view = LocalView.current
     var desc by remember(existing?.id) { mutableStateOf(existing?.description ?: "") }
-    var priceText by remember(existing?.id) { mutableStateOf(existing?.price?.toString() ?: "") }
-    var paidText by remember(existing?.id) { mutableStateOf(existing?.amountPaid?.toString() ?: "") }
-    var paidNotes by remember(existing?.id) { mutableStateOf(existing?.notesPaid?.entries?.joinToString(",") { "${it.key}:${it.value}" } ?: "") }
-    var changeNotes by remember(existing?.id) { mutableStateOf(existing?.changeNotes?.entries?.joinToString(",") { "${it.key}:${it.value}" } ?: "") }
-    val price = priceText.toLongOrNull() ?: 0L
-    val paid = paidText.toLongOrNull() ?: price
-    val parsedPaidNotes = parseCounts(paidNotes)
-    val parsedChangeNotes = parseCounts(changeNotes)
-    val notesProvided = paidNotes.isNotBlank() || changeNotes.isNotBlank()
-    val paidNoteTotal = parsedPaidNotes.entries.sumOf { it.key * it.value }
-    val changeNoteTotal = parsedChangeNotes.entries.sumOf { it.key * it.value }
+    var priceText by remember(existing?.id) { mutableStateOf(existing?.price?.let(::formatEditableMoney) ?: "") }
+    var paidText by remember(existing?.id) { mutableStateOf(existing?.amountPaid?.let(::formatEditableMoney) ?: "") }
+    var paidCounts by remember(existing?.id) { mutableStateOf(existing?.notesPaid ?: emptyMap()) }
+    var changeCounts by remember(existing?.id) { mutableStateOf(existing?.changeNotes ?: emptyMap()) }
+    val price = priceText.toLongOrNullMoney() ?: 0L
+    val paid = paidText.toLongOrNullMoney() ?: price
+    val notesProvided = paidCounts.isNotEmpty() || changeCounts.isNotEmpty()
+    val paidNoteTotal = paidCounts.entries.sumOf { it.key * it.value }
+    val changeNoteTotal = changeCounts.entries.sumOf { it.key * it.value }
     val noteCountsValid = !exact || !notesProvided || (paidNoteTotal == paid && changeNoteTotal == (paid - price).coerceAtLeast(0))
     AlertDialog(onDismissRequest = dismiss, shape = RoundedCornerShape(28.dp), containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, textContentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 10.dp, title = { Text(if (existing == null) "Add expense" else "Edit expense") }, text = {
         Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true)
-            OutlinedTextField(priceText, { priceText = it.filter(Char::isDigit) }, label = { Text("Actual price (VND)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-            OutlinedTextField(paidText, { paidText = it.filter(Char::isDigit) }, label = { Text("Amount handed over") }, supportingText = { Text("Blank means exact price.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-            if (price > 0 && paid >= price) Text("Change: ${formatVnd(paid - price)}. Only ${formatVnd(price)} is deducted.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(priceText, { priceText = formatMoneyWhileTyping(it) }, label = { Text("Actual price (VND)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(paidText, { paidText = formatMoneyWhileTyping(it) }, label = { Text("Amount handed over") }, supportingText = { Text("Blank means exact price.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (price > 0 && paid >= price) Text("Change: \${formatVnd(paid - price)}. Only \${formatVnd(price)} is deducted.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             if (exact) {
-                Text("Optional note counts: denomination:count, comma-separated (e.g. 500000:1,20000:2).", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(paidNotes, { paidNotes = it }, label = { Text("Notes handed over") })
-                OutlinedTextField(changeNotes, { changeNotes = it }, label = { Text("Notes received as change") })
+                Text("Select a denomination and enter how many notes/coins were used. Add each denomination separately.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                DenominationCountPicker("Notes handed over", paidCounts) { paidCounts = it }
+                DenominationCountPicker("Notes received as change", changeCounts) { changeCounts = it }
                 if (notesProvided && !noteCountsValid) Text("Note totals must equal the amount paid and the calculated change.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                if (notesProvided) Text("Paid notes: \${formatVnd(paidNoteTotal)} · Change notes: \${formatVnd(changeNoteTotal)}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNullMoney()?.takeIf { it >= price } ?: price, paidCounts, changeCounts) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
-private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull { part ->
-    val p = part.trim().split(":"); if (p.size != 2) null else {
-        val v = p[0].trim().toLongOrNull(); val c = p[1].trim().toIntOrNull()
-        if (v == null || c == null || v <= 0 || c < 0) null else v to c
+@Composable private fun DenominationCountPicker(title: String, counts: Map<Long, Int>, onCountsChange: (Map<Long, Int>) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var selected by remember { mutableLongStateOf(counts.keys.firstOrNull() ?: denoms.first()) }
+    var countText by remember(selected, counts) { mutableStateOf((counts[selected] ?: 0).toString()) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)) {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(formatVnd(selected), modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose denomination")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    denoms.forEach { denomination ->
+                        DropdownMenuItem(text = { Text(formatVnd(denomination)) }, onClick = {
+                            selected = denomination
+                            countText = (counts[denomination] ?: 0).toString()
+                            expanded = false
+                        })
+                    }
+                }
+            }
+            OutlinedTextField(countText, { countText = it.filter(Char::isDigit) }, modifier = Modifier.width(90.dp), label = { Text("Count") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+            Button(onClick = {
+                val count = countText.toIntOrNull()?.coerceAtLeast(0) ?: 0
+                val updated = counts.toMutableMap()
+                if (count == 0) updated.remove(selected) else updated[selected] = count
+                onCountsChange(updated)
+            }) { Text("Add") }
+        }
+        if (counts.isNotEmpty()) {
+            counts.toSortedMap(compareByDescending { it }).forEach { (denomination, count) ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("\${formatVnd(denomination)} × $count = \${formatVnd(denomination * count)}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { onCountsChange(counts - denomination) }) { Text("Remove") }
+                }
+            }
+        }
     }
-}.toMap()
+}
+
+private fun formatEditableMoney(value: Long): String = java.text.DecimalFormat("#,##0", java.text.DecimalFormatSymbols(java.util.Locale.US)).format(value)
+private fun formatMoneyWhileTyping(raw: String): String {
+    val digits = raw.filter(Char::isDigit)
+    return digits.toLongOrNull()?.let(::formatEditableMoney) ?: digits
+}
+private fun String.toLongOrNullMoney(): Long? = filter(Char::isDigit).toLongOrNull()
 
 @Composable private fun DenomDialog(current: Map<Long, Int>, dismiss: () -> Unit, save: (Map<Long, Int>) -> Unit) {
     val view = LocalView.current
@@ -310,10 +350,10 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
     var initial by remember { mutableStateOf(initialDefault) }
     AlertDialog(onDismissRequest = dismiss, shape = RoundedCornerShape(28.dp), containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, textContentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 10.dp, title = { Text(if (initialDefault) "Set starting cash" else "Add more cash") }, text = {
         Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Amount in VND") }, supportingText = { Text("Enter the new cash amount you received.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(amount, { amount = formatMoneyWhileTyping(it) }, label = { Text("Amount in VND") }, supportingText = { Text("Enter the new cash amount you received.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) { Switch(initial, { initial = it }); Spacer(Modifier.width(8.dp)); Column { Text("Replace starting cash"); Text("Turn off to add this amount to your existing funds.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-            val parsed = amount.toLongOrNull() ?: 0L
+            val parsed = amount.toLongOrNullMoney() ?: 0L
             if (parsed > 0) Text(if (initial) "Starting cash will be set to ${formatVnd(parsed)}." else "Available balance will increase by ${formatVnd(parsed)}.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
         }
-    }, confirmButton = { Button(onClick = { amount.toLongOrNull()?.takeIf { it > 0 }?.let { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(it, initial) } }, enabled = (amount.toLongOrNull() ?: 0) > 0) { Text(if (initial) "Set starting cash" else "Add cash") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { amount.toLongOrNullMoney()?.takeIf { it > 0 }?.let { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(it, initial) } }, enabled = (amount.toLongOrNullMoney() ?: 0) > 0) { Text(if (initial) "Set starting cash" else "Add cash") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
