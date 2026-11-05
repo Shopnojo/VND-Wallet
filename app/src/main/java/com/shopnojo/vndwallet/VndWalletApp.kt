@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.UUID
 
 private val amber = androidx.compose.ui.graphics.Color(0xFFF59E0B)
@@ -57,6 +60,14 @@ fun VndWalletApp() {
     LaunchedEffect(Unit) {
         rates.cached()?.let { save(state.copy(rateInrPerVnd = it.inrPerVnd, rateDate = it.date, rateUpdatedAt = it.fetchedAt)) }
         if (rates.isRefreshDue()) refresh()
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && rates.isRefreshDue()) refresh()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     MaterialTheme(colorScheme = when (state.theme) {
         "Dark" -> darkColorScheme(primary = androidx.compose.ui.graphics.Color(0xFFFFB74D), background = androidx.compose.ui.graphics.Color(0xFF171411), surface = androidx.compose.ui.graphics.Color(0xFF211D19))
