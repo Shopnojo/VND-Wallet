@@ -4,6 +4,8 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -117,7 +119,7 @@ fun VndWalletApp() {
     }
     if (dialog == "cash") DenomDialog(state.denominations, { dialog = "" }) { save(state.copy(denominations = it, inventoryNeedsReconciliation = false)); dialog = "" }
     if (dialog == "addcash") AddCashDialog(state.totalCashIn == 0L, { dialog = "" }) { amount, initial ->
-        save(if (initial) state.copy(initialCash = amount, addedCash = 0) else state.copy(addedCash = state.addedCash + amount))
+        save(if (initial) state.copy(initialCash = amount, addedCash = 0) else state.copy(addedCash = (state.addedCash + amount).coerceAtLeast(state.addedCash), inventoryNeedsReconciliation = true))
         dialog = ""
     }
 }
@@ -237,7 +239,7 @@ fun VndWalletApp() {
     val changeNoteTotal = parsedChangeNotes.entries.sumOf { it.key * it.value }
     val noteCountsValid = !exact || !notesProvided || (paidNoteTotal == paid && changeNoteTotal == (paid - price).coerceAtLeast(0))
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) "Add expense" else "Edit expense") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true)
             OutlinedTextField(priceText, { priceText = it.filter(Char::isDigit) }, label = { Text("Actual price (VND)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
             OutlinedTextField(paidText, { paidText = it.filter(Char::isDigit) }, label = { Text("Amount handed over") }, supportingText = { Text("Blank means exact price.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
@@ -263,7 +265,7 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
     val counts = remember { denoms.associateWith { current[it] ?: 0 }.toMutableMap() }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Physical cash denominations") }, text = {
         LazyColumn(Modifier.height(420.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            item { Text("Set the number of notes/coins you physically have.") }
+            item { Text("Enter the notes and coins currently in your wallet. This physical count is separate from the spending balance.") }
             items(denoms) { value ->
                 var count by remember(value) { mutableStateOf((counts[value] ?: 0).toString()) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -278,10 +280,12 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
 @Composable private fun AddCashDialog(initialDefault: Boolean, dismiss: () -> Unit, save: (Long, Boolean) -> Unit) {
     var amount by remember { mutableStateOf("") }
     var initial by remember { mutableStateOf(initialDefault) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("Add cash") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Amount in VND") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-            Row(verticalAlignment = Alignment.CenterVertically) { Switch(initial, { initial = it }); Spacer(Modifier.width(8.dp)); Text("Replace starting cash amount") }
+    AlertDialog(onDismissRequest = dismiss, title = { Text(if (initialDefault) "Set starting cash" else "Add more cash") }, text = {
+        Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Amount in VND") }, supportingText = { Text("Enter the new cash amount you received.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) { Switch(initial, { initial = it }); Spacer(Modifier.width(8.dp)); Column { Text("Replace starting cash"); Text("Turn off to add this amount to your existing funds.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+            val parsed = amount.toLongOrNull() ?: 0L
+            if (parsed > 0) Text(if (initial) "Starting cash will be set to ${formatVnd(parsed)}." else "Available balance will increase by ${formatVnd(parsed)}.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
         }
-    }, confirmButton = { Button(onClick = { amount.toLongOrNull()?.takeIf { it > 0 }?.let { save(it, initial) } }, enabled = (amount.toLongOrNull() ?: 0) > 0) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { amount.toLongOrNull()?.takeIf { it > 0 }?.let { save(it, initial) } }, enabled = (amount.toLongOrNull() ?: 0) > 0) { Text(if (initial) "Set starting cash" else "Add cash") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
