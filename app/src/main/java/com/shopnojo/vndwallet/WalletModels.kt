@@ -23,6 +23,7 @@ data class Expense(
 data class WalletState(
     val initialCash: Long = 0,
     val addedCash: Long = 0,
+    val balanceAdjustment: Long = 0,
     val expenses: List<Expense> = emptyList(),
     val denominations: Map<Long, Int> = defaultDenominations(),
     val rateInrPerVnd: Double = 0.00367632,
@@ -33,7 +34,7 @@ data class WalletState(
     val inventoryNeedsReconciliation: Boolean = false
 ) {
     val totalSpent: Long get() = expenses.sumOf { it.price }
-    val availableBalance: Long get() = (initialCash + addedCash - totalSpent).coerceAtLeast(0)
+    val availableBalance: Long get() = (initialCash + addedCash + balanceAdjustment - totalSpent).coerceAtLeast(0)
     val physicalCash: Long get() = denominations.entries.sumOf { it.key * it.value.coerceAtLeast(0) }
     val totalCashIn: Long get() = initialCash + addedCash
 }
@@ -80,6 +81,7 @@ class WalletStore(context: Context) {
             WalletState(
                 initialCash = root.optLong("initialCash", 0).coerceAtLeast(0),
                 addedCash = root.optLong("addedCash", 0).coerceAtLeast(0),
+                balanceAdjustment = root.optLong("balanceAdjustment", 0),
                 expenses = expenses.sortedByDescending { it.timestamp },
                 denominations = denoms,
                 rateInrPerVnd = root.optDouble("rateInrPerVnd", 0.00367632).takeIf { it > 0 } ?: 0.00367632,
@@ -96,6 +98,7 @@ class WalletStore(context: Context) {
         val root = JSONObject()
             .put("initialCash", state.initialCash)
             .put("addedCash", state.addedCash)
+            .put("balanceAdjustment", state.balanceAdjustment)
             .put("rateInrPerVnd", state.rateInrPerVnd)
             .put("rateDate", state.rateDate)
             .put("rateUpdatedAt", state.rateUpdatedAt)
