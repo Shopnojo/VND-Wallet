@@ -222,7 +222,7 @@ fun VndWalletApp() {
     LazyColumn(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
         item {
-            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (dark) 0.72f else 0.65f))) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("VND → INR exchange rate", fontWeight = FontWeight.Bold)
                 Text("1 VND = ₹${String.format(java.util.Locale.US, "%.8f", s.rateInrPerVnd)}", style = MaterialTheme.typography.titleLarge)
                 Text(if (s.rateDate.isBlank()) "Using starter estimate until updated." else "Reference rate date: ${s.rateDate}", color = MaterialTheme.colorScheme.onSurfaceVariant)
