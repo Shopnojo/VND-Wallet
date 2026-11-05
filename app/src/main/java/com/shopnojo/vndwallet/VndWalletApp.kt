@@ -219,6 +219,12 @@ fun VndWalletApp() {
     var changeNotes by remember(existing?.id) { mutableStateOf(existing?.changeNotes?.entries?.joinToString(",") { "${it.key}:${it.value}" } ?: "") }
     val price = priceText.toLongOrNull() ?: 0L
     val paid = paidText.toLongOrNull() ?: price
+    val parsedPaidNotes = parseCounts(paidNotes)
+    val parsedChangeNotes = parseCounts(changeNotes)
+    val notesProvided = paidNotes.isNotBlank() || changeNotes.isNotBlank()
+    val paidNoteTotal = parsedPaidNotes.entries.sumOf { it.key * it.value }
+    val changeNoteTotal = parsedChangeNotes.entries.sumOf { it.key * it.value }
+    val noteCountsValid = !exact || !notesProvided || (paidNoteTotal == paid && changeNoteTotal == (paid - price).coerceAtLeast(0))
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) "Add expense" else "Edit expense") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true)
@@ -229,9 +235,10 @@ fun VndWalletApp() {
                 Text("Optional note counts: denomination:count, comma-separated (e.g. 500000:1,20000:2).", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(paidNotes, { paidNotes = it }, label = { Text("Notes handed over") })
                 OutlinedTextField(changeNotes, { changeNotes = it }, label = { Text("Notes received as change") })
+                if (notesProvided && !noteCountsValid) Text("Note totals must equal the amount paid and the calculated change.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }, confirmButton = { Button(onClick = { save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parseCounts(paidNotes), parseCounts(changeNotes)) }, enabled = price > 0 && (paidText.isBlank() || paid >= price)) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull { part ->
