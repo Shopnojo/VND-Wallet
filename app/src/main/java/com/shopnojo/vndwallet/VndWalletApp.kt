@@ -283,31 +283,53 @@ fun VndWalletApp() {
     var expanded by remember { mutableStateOf(false) }
     var selected by remember { mutableLongStateOf(counts.keys.firstOrNull() ?: denoms.first()) }
     var countText by remember(selected, counts) { mutableStateOf((counts[selected] ?: 0).toString()) }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         Text(title, fontWeight = FontWeight.SemiBold)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.weight(1f)) {
-                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(formatVnd(selected), modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose denomination")
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    denoms.forEach { denomination ->
-                        DropdownMenuItem(text = { Text(formatVnd(denomination)) }, onClick = {
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text(formatVnd(selected), modifier = Modifier.weight(1f), maxLines = 1)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose denomination")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth(0.78f)
+            ) {
+                denoms.forEach { denomination ->
+                    DropdownMenuItem(
+                        text = { Text(formatVnd(denomination), maxLines = 1) },
+                        onClick = {
                             selected = denomination
                             countText = (counts[denomination] ?: 0).toString()
                             expanded = false
-                        })
-                    }
+                        }
+                    )
                 }
             }
-            OutlinedTextField(countText, { countText = it.filter(Char::isDigit) }, modifier = Modifier.width(90.dp), label = { Text("Count") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-            Button(onClick = {
-                val count = countText.toIntOrNull()?.coerceAtLeast(0) ?: 0
-                val updated = counts.toMutableMap()
-                if (count == 0) updated.remove(selected) else updated[selected] = count
-                onCountsChange(updated)
-            }) { Text("Add") }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = countText,
+                onValueChange = { countText = it.filter(Char::isDigit) },
+                modifier = Modifier.weight(1f),
+                label = { Text("Count") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    val count = countText.toIntOrNull()?.coerceAtLeast(0) ?: 0
+                    val updated = counts.toMutableMap()
+                    if (count == 0) updated.remove(selected) else updated[selected] = count
+                    onCountsChange(updated)
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("Add") }
         }
         if (counts.isNotEmpty()) {
             counts.toSortedMap(compareByDescending { it }).forEach { (denomination, count) ->
