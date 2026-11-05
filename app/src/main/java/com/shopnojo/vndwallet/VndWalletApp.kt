@@ -94,7 +94,7 @@ fun VndWalletApp() {
         dialog = ""; editing = null
     }
     if (dialog == "cash") DenomDialog(state.denominations, { dialog = "" }) { save(state.copy(denominations = it, inventoryNeedsReconciliation = false)); dialog = "" }
-    if (dialog == "addcash") AddCashDialog({ dialog = "" }) { amount, initial ->
+    if (dialog == "addcash") AddCashDialog(state.totalCashIn == 0L, { dialog = "" }) { amount, initial ->
         save(if (initial) state.copy(initialCash = amount, addedCash = 0) else state.copy(addedCash = state.addedCash + amount))
         dialog = ""
     }
@@ -245,9 +245,9 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
     }, confirmButton = { Button(onClick = { save(counts.toMap()) }) { Text("Save counts") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
-@Composable private fun AddCashDialog(dismiss: () -> Unit, save: (Long, Boolean) -> Unit) {
+@Composable private fun AddCashDialog(initialDefault: Boolean, dismiss: () -> Unit, save: (Long, Boolean) -> Unit) {
     var amount by remember { mutableStateOf("") }
-    var initial by remember { mutableStateOf(false) }
+    var initial by remember { mutableStateOf(initialDefault) }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Add cash") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Amount in VND") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
