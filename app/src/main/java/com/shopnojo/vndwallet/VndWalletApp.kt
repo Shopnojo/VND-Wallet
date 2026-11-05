@@ -108,7 +108,7 @@ fun VndWalletApp() {
             } }
         ) { pad ->
             when (tab) {
-                0 -> WalletScreen(state, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) }, { val target = state.physicalCash; val current = state.availableBalance; save(state.copy(balanceAdjustment = state.balanceAdjustment + target - current, inventoryNeedsReconciliation = false)) })
+                0 -> WalletScreen(state, dark, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) }, { val target = state.physicalCash; val current = state.availableBalance; save(state.copy(balanceAdjustment = state.balanceAdjustment + target - current, inventoryNeedsReconciliation = false)) })
                 1 -> ExpensesScreen(state, Modifier.padding(pad), { editing = it; dialog = "expense" }, { e ->
                     val hasNotes = e.notesPaid.isNotEmpty() || e.changeNotes.isNotEmpty()
                     val restored = if (hasNotes) adjustDenominations(state.denominations, e, false) else state.denominations
@@ -136,7 +136,7 @@ fun VndWalletApp() {
     }
 }
 
-@Composable private fun WalletScreen(s: WalletState, modifier: Modifier, cash: () -> Unit, addCash: () -> Unit, addExpense: () -> Unit, unused: (WalletState) -> Unit, syncBalance: () -> Unit) {
+@Composable private fun WalletScreen(s: WalletState, dark: Boolean, modifier: Modifier, cash: () -> Unit, addCash: () -> Unit, addExpense: () -> Unit, unused: (WalletState) -> Unit, syncBalance: () -> Unit) {
     LazyColumn(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Text("VND Wallet", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Your Vietnam trip, at a glance", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
@@ -147,15 +147,15 @@ fun VndWalletApp() {
                 )
             ) {
                 Column(Modifier.fillMaxWidth().padding(22.dp)) {
-                    Text("AVAILABLE BALANCE", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .8f), fontSize = 12.sp)
-                    Text(formatVnd(s.availableBalance), color = MaterialTheme.colorScheme.onPrimary, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-                    Text("${formatInr(s.availableBalance, s.rateInrPerVnd)} · INR equivalent", color = MaterialTheme.colorScheme.onPrimary)
+                    Text("AVAILABLE BALANCE", color = Color(0xFF4B2A66), fontSize = 12.sp)
+                    Text(formatVnd(s.availableBalance), color = Color(0xFF3B176D), fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                    Text("${formatInr(s.availableBalance, s.rateInrPerVnd)} · INR equivalent", color = Color(0xFF3B176D))
                     Spacer(Modifier.height(18.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column { Text("Initial cash", color = MaterialTheme.colorScheme.onPrimary); Text(formatVnd(s.initialCash), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
-                        Column(horizontalAlignment = Alignment.End) { Text("Total spent", color = MaterialTheme.colorScheme.onPrimary); Text(formatVnd(s.totalSpent), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
+                        Column { Text("Initial cash", color = Color(0xFF4B2A66)); Text(formatVnd(s.initialCash), color = Color(0xFF3B176D), fontWeight = FontWeight.Bold) }
+                        Column(horizontalAlignment = Alignment.End) { Text("Total spent", color = Color(0xFF4B2A66)); Text(formatVnd(s.totalSpent), color = Color(0xFF3B176D), fontWeight = FontWeight.Bold) }
                     }
-                    if (s.addedCash > 0) Text("Additional cash added: ${formatVnd(s.addedCash)}", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .85f), style = MaterialTheme.typography.bodySmall)
+                    if (s.addedCash > 0) Text("Additional cash added: ${formatVnd(s.addedCash)}", color = Color(0xFF4B2A66), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
