@@ -62,9 +62,20 @@ fun VndWalletApp() {
         if (rates.isRefreshDue()) refresh()
     }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val latestState by rememberUpdatedState(state)
+    val latestSave by rememberUpdatedState<(WalletState) -> Unit>({ next -> save(next) })
+    val latestRefresh by rememberUpdatedState<() -> Unit>({ refresh() })
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && rates.isRefreshDue()) refresh()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                rates.cached()?.let { cached ->
+                    val current = latestState
+                    if (current.rateInrPerVnd != cached.inrPerVnd || current.rateDate != cached.date || current.rateUpdatedAt != cached.fetchedAt) {
+                        latestSave(current.copy(rateInrPerVnd = cached.inrPerVnd, rateDate = cached.date, rateUpdatedAt = cached.fetchedAt))
+                    }
+                }
+                if (rates.isRefreshDue()) latestRefresh()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
