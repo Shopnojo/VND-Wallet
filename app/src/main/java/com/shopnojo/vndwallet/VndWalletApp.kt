@@ -252,7 +252,7 @@ fun VndWalletApp() {
                 if (notesProvided && !noteCountsValid) Text("Note totals must equal the amount paid and the calculated change.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull { part ->
