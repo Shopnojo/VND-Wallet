@@ -3,6 +3,7 @@ package com.shopnojo.vndwallet
 import android.os.Handler
 import android.os.Looper
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +17,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -84,11 +87,18 @@ fun VndWalletApp() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    MaterialTheme(colorScheme = when (state.theme) {
-        "Dark" -> darkColorScheme(primary = androidx.compose.ui.graphics.Color(0xFFFFB74D), background = androidx.compose.ui.graphics.Color(0xFF171411), surface = androidx.compose.ui.graphics.Color(0xFF211D19))
-        "Light" -> lightColorScheme(primary = androidx.compose.ui.graphics.Color(0xFFB96500), background = androidx.compose.ui.graphics.Color(0xFFFFF8F0), surface = androidx.compose.ui.graphics.Color(0xFFFFFBF7))
-        else -> if (androidx.compose.foundation.isSystemInDarkTheme()) darkColorScheme(primary = androidx.compose.ui.graphics.Color(0xFFFFB74D)) else lightColorScheme(primary = androidx.compose.ui.graphics.Color(0xFFB96500), background = androidx.compose.ui.graphics.Color(0xFFFFF8F0))
-    }) {
+    val dark = state.theme == "Dark" || (state.theme == "System" && androidx.compose.foundation.isSystemInDarkTheme())
+    MaterialTheme(colorScheme = if (dark) darkColorScheme(
+        primary = Color(0xFFFFB74D), onPrimary = Color(0xFF30200B),
+        background = Color(0xFF141217), onBackground = Color(0xFFF5F1F8),
+        surface = Color(0xFF302D35), onSurface = Color(0xFFF5F1F8),
+        surfaceVariant = Color(0xFF3B3741), onSurfaceVariant = Color(0xFFC8C1CE)
+    ) else lightColorScheme(
+        primary = Color(0xFF9B5200), onPrimary = Color.White,
+        background = Color(0xFFFFF9F2), onBackground = Color(0xFF17131A),
+        surface = Color.White, onSurface = Color(0xFF17131A),
+        surfaceVariant = Color(0xFFF0EAF2), onSurfaceVariant = Color(0xFF5F5965)
+    )) {
         Scaffold(
             floatingActionButton = { if (tab != 2) FloatingActionButton(onClick = { editing = null; dialog = "expense" }, containerColor = amber) { Icon(Icons.Default.Add, "Add expense") } },
             bottomBar = { NavigationBar {
@@ -98,7 +108,7 @@ fun VndWalletApp() {
             } }
         ) { pad ->
             when (tab) {
-                0 -> WalletScreen(state, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) })
+                0 -> WalletScreen(state, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) }, { val target = state.physicalCash; val current = state.availableBalance; save(state.copy(balanceAdjustment = state.balanceAdjustment + target - current, inventoryNeedsReconciliation = false)) })
                 1 -> ExpensesScreen(state, Modifier.padding(pad), { editing = it; dialog = "expense" }, { e ->
                     val hasNotes = e.notesPaid.isNotEmpty() || e.changeNotes.isNotEmpty()
                     val restored = if (hasNotes) adjustDenominations(state.denominations, e, false) else state.denominations
@@ -126,11 +136,16 @@ fun VndWalletApp() {
     }
 }
 
-@Composable private fun WalletScreen(s: WalletState, modifier: Modifier, cash: () -> Unit, addCash: () -> Unit, addExpense: () -> Unit, unused: (WalletState) -> Unit) {
+@Composable private fun WalletScreen(s: WalletState, modifier: Modifier, cash: () -> Unit, addCash: () -> Unit, addExpense: () -> Unit, unused: (WalletState) -> Unit, syncBalance: () -> Unit) {
     LazyColumn(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Text("VND Wallet", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Your Vietnam trip, at a glance", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
-            Card(shape = RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
+            Box(
+                Modifier.fillMaxWidth().background(
+                    Brush.linearGradient(if (dark) listOf(Color(0xFFFFC15A), Color(0xFFFFA726), Color(0xFFE88900)) else listOf(Color(0xFFFFC15A), Color(0xFFFFAB2E), Color(0xFFF59E0B))),
+                    RoundedCornerShape(28.dp)
+                )
+            ) {
                 Column(Modifier.fillMaxWidth().padding(22.dp)) {
                     Text("AVAILABLE BALANCE", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .8f), fontSize = 12.sp)
                     Text(formatVnd(s.availableBalance), color = MaterialTheme.colorScheme.onPrimary, fontSize = 34.sp, fontWeight = FontWeight.Bold)
@@ -153,6 +168,14 @@ fun VndWalletApp() {
                     if (s.inventoryNeedsReconciliation) Text("Physical cash may need reconciliation.", color = MaterialTheme.colorScheme.error)
                 }
             }
+        }
+        item {
+            OutlinedButton(onClick = syncBalance, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Icon(Icons.Default.Sync, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Sync balance to physical cash")
+            }
+            Text("Sets Available Balance to the total of your denomination counts. Your spending history stays unchanged.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
         item { Button(onClick = addCash, modifier = Modifier.fillMaxWidth()) { Text(if (s.totalCashIn == 0L) "Set starting cash" else "Add more cash") } }
         item { Text("Recent expenses", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
@@ -199,7 +222,7 @@ fun VndWalletApp() {
     LazyColumn(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
         item {
-            Card(shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (dark) 0.72f else 0.65f))) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("VND → INR exchange rate", fontWeight = FontWeight.Bold)
                 Text("1 VND = ₹${String.format(java.util.Locale.US, "%.8f", s.rateInrPerVnd)}", style = MaterialTheme.typography.titleLarge)
                 Text(if (s.rateDate.isBlank()) "Using starter estimate until updated." else "Reference rate date: ${s.rateDate}", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -241,7 +264,7 @@ fun VndWalletApp() {
     val paidNoteTotal = parsedPaidNotes.entries.sumOf { it.key * it.value }
     val changeNoteTotal = parsedChangeNotes.entries.sumOf { it.key * it.value }
     val noteCountsValid = !exact || !notesProvided || (paidNoteTotal == paid && changeNoteTotal == (paid - price).coerceAtLeast(0))
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (existing == null) "Add expense" else "Edit expense") }, text = {
+    AlertDialog(onDismissRequest = dismiss, shape = RoundedCornerShape(28.dp), containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, textContentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 10.dp, title = { Text(if (existing == null) "Add expense" else "Edit expense") }, text = {
         Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true)
             OutlinedTextField(priceText, { priceText = it.filter(Char::isDigit) }, label = { Text("Actual price (VND)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
@@ -267,7 +290,7 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
 @Composable private fun DenomDialog(current: Map<Long, Int>, dismiss: () -> Unit, save: (Map<Long, Int>) -> Unit) {
     val view = LocalView.current
     val counts = remember { denoms.associateWith { current[it] ?: 0 }.toMutableMap() }
-    AlertDialog(onDismissRequest = dismiss, title = { Text("Physical cash denominations") }, text = {
+    AlertDialog(onDismissRequest = dismiss, shape = RoundedCornerShape(28.dp), containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, textContentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 10.dp, title = { Text("Physical cash denominations") }, text = {
         LazyColumn(Modifier.height(420.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             item { Text("Enter the notes and coins currently in your wallet. This physical count is separate from the spending balance.") }
             items(denoms) { value ->
@@ -285,7 +308,7 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
     val view = LocalView.current
     var amount by remember { mutableStateOf("") }
     var initial by remember { mutableStateOf(initialDefault) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(if (initialDefault) "Set starting cash" else "Add more cash") }, text = {
+    AlertDialog(onDismissRequest = dismiss, shape = RoundedCornerShape(28.dp), containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, textContentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 10.dp, title = { Text(if (initialDefault) "Set starting cash" else "Add more cash") }, text = {
         Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(amount, { amount = it.filter(Char::isDigit) }, label = { Text("Amount in VND") }, supportingText = { Text("Enter the new cash amount you received.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) { Switch(initial, { initial = it }); Spacer(Modifier.width(8.dp)); Column { Text("Replace starting cash"); Text("Turn off to add this amount to your existing funds.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
