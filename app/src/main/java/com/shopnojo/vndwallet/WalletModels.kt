@@ -134,3 +134,14 @@ class WalletStore(context: Context) {
         return result
     }
 }
+
+fun adjustDenominations(current: Map<Long, Int>, expense: Expense, applyExpense: Boolean): Map<Long, Int> {
+    val next = current.toMutableMap()
+    expense.notesPaid.forEach { (value, count) ->
+        next[value] = ((next[value] ?: 0) + if (applyExpense) -count else count).coerceAtLeast(0)
+    }
+    expense.changeNotes.forEach { (value, count) ->
+        next[value] = ((next[value] ?: 0) + if (applyExpense) count else -count).coerceAtLeast(0)
+    }
+    return next
+}
