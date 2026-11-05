@@ -242,7 +242,7 @@ fun VndWalletApp() {
         item {
             Card(shape = RoundedCornerShape(20.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Cash tracking", fontWeight = FontWeight.Bold)
-                Row(verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text("Exact denomination notes"); Text("Allow recording note counts paid and received in the expense form.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; Switch(s.exactCashTracking, exact) }
+                Text("Keep expense entry simple. Edit your physical note and coin counts separately from the spending ledger.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 OutlinedButton(onClick = addCash, modifier = Modifier.fillMaxWidth()) { Text("Add cash / correct starting amount") }
             } }
         }
