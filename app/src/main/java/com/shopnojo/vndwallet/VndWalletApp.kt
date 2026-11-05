@@ -225,6 +225,7 @@ fun VndWalletApp() {
 }
 
 @Composable private fun ExpenseDialog(existing: Expense?, exact: Boolean, dismiss: () -> Unit, save: (String, Long, Long, Map<Long, Int>, Map<Long, Int>) -> Unit) {
+    val view = LocalView.current
     var desc by remember(existing?.id) { mutableStateOf(existing?.description ?: "") }
     var priceText by remember(existing?.id) { mutableStateOf(existing?.price?.toString() ?: "") }
     var paidText by remember(existing?.id) { mutableStateOf(existing?.amountPaid?.toString() ?: "") }
@@ -251,7 +252,7 @@ fun VndWalletApp() {
                 if (notesProvided && !noteCountsValid) Text("Note totals must equal the amount paid and the calculated change.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }, confirmButton = { Button(onClick = { save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull { part ->
@@ -262,6 +263,7 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
 }.toMap()
 
 @Composable private fun DenomDialog(current: Map<Long, Int>, dismiss: () -> Unit, save: (Map<Long, Int>) -> Unit) {
+    val view = LocalView.current
     val counts = remember { denoms.associateWith { current[it] ?: 0 }.toMutableMap() }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Physical cash denominations") }, text = {
         LazyColumn(Modifier.height(420.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -274,10 +276,11 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
                 }
             }
         }
-    }, confirmButton = { Button(onClick = { save(counts.toMap()) }) { Text("Save counts") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(counts.toMap()) }) { Text("Save counts") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 @Composable private fun AddCashDialog(initialDefault: Boolean, dismiss: () -> Unit, save: (Long, Boolean) -> Unit) {
+    val view = LocalView.current
     var amount by remember { mutableStateOf("") }
     var initial by remember { mutableStateOf(initialDefault) }
     AlertDialog(onDismissRequest = dismiss, title = { Text(if (initialDefault) "Set starting cash" else "Add more cash") }, text = {
@@ -287,5 +290,5 @@ private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull
             val parsed = amount.toLongOrNull() ?: 0L
             if (parsed > 0) Text(if (initial) "Starting cash will be set to ${formatVnd(parsed)}." else "Available balance will increase by ${formatVnd(parsed)}.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
         }
-    }, confirmButton = { Button(onClick = { amount.toLongOrNull()?.takeIf { it > 0 }?.let { save(it, initial) } }, enabled = (amount.toLongOrNull() ?: 0) > 0) { Text(if (initial) "Set starting cash" else "Add cash") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { amount.toLongOrNull()?.takeIf { it > 0 }?.let { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(it, initial) } }, enabled = (amount.toLongOrNull() ?: 0) > 0) { Text(if (initial) "Set starting cash" else "Add cash") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
