@@ -27,4 +27,4 @@ GitHub Actions builds a debug APK on pushes and pull requests to the main branch
 
 ## Data and limitations
 
-Wallet data is stored locally in app preferences and is not synced to a cloud account. The physical denomination count is a separate manual inventory; update it when you count your actual cash. The optional exact note-count fields save the note details alongside each expense, but do not automatically alter the denomination inventory.
+Wallet data is stored locally in app preferences and is not synced to a cloud account. The physical denomination count is a manual inventory; set it to match the cash you actually hold. When exact tracking is enabled and note counts are entered, those counts adjust the inventory automatically. If you skip the note counts, the app flags the inventory for reconciliation.
