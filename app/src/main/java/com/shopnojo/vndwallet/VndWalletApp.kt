@@ -122,7 +122,7 @@ fun VndWalletApp() {
             Card(Modifier.fillMaxWidth().clickable(onClick = cash), shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.padding(18.dp)) {
                     Text("Physical cash  ·  Edit denominations", fontWeight = FontWeight.SemiBold)
-                    Text("${formatVnd(s.physicalCash)} across ${s.denominations.values.sum()} notes/coins", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${formatVnd(s.physicalCash)} · ${formatInr(s.physicalCash, s.rateInrPerVnd)} · ${s.denominations.values.sum()} notes/coins", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (s.inventoryNeedsReconciliation) Text("Physical cash may need reconciliation.", color = MaterialTheme.colorScheme.error)
                 }
             }
