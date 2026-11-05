@@ -272,7 +272,7 @@ fun VndWalletApp() {
                 OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(priceText, { priceText = formatMoneyWhileTyping(it) }, label = { Text("Actual price (VND)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(paidText, { paidText = formatMoneyWhileTyping(it) }, label = { Text("Amount handed over (optional)") }, supportingText = { Text("Leave blank if you paid the exact price.") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
-                if (price > 0 && paid >= price) Text("Change: \${formatVnd(paid - price)}. Only \${formatVnd(price)} is deducted.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                if (price > 0 && paid >= price) Text("Change: ${formatVnd(paid - price)}. Only ${formatVnd(price)} is deducted.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
             }
         },
         confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNullMoney()?.takeIf { it >= price } ?: price, emptyMap(), emptyMap()) }, enabled = price > 0 && (paidText.isBlank() || paid >= price)) { Text("Save") } },
