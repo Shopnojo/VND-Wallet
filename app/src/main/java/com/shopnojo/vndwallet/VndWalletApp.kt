@@ -73,7 +73,11 @@ fun VndWalletApp() {
         ) { pad ->
             when (tab) {
                 0 -> WalletScreen(state, Modifier.padding(pad), { dialog = "cash" }, { dialog = "addcash" }, { editing = null; dialog = "expense" }, { save(it) })
-                1 -> ExpensesScreen(state, Modifier.padding(pad), { editing = it; dialog = "expense" }, { e -> save(state.copy(expenses = state.expenses.filterNot { it.id == e.id }, inventoryNeedsReconciliation = state.exactCashTracking || state.inventoryNeedsReconciliation)) })
+                1 -> ExpensesScreen(state, Modifier.padding(pad), { editing = it; dialog = "expense" }, { e ->
+                    val hasNotes = e.notesPaid.isNotEmpty() || e.changeNotes.isNotEmpty()
+                    val restored = if (hasNotes) adjustDenominations(state.denominations, e, false) else state.denominations
+                    save(state.copy(expenses = state.expenses.filterNot { it.id == e.id }, denominations = restored, inventoryNeedsReconciliation = state.inventoryNeedsReconciliation || (state.exactCashTracking && !hasNotes)))
+                })
                 else -> SettingsScreen(state, Modifier.padding(pad), loading, rateMessage, ::refresh, { save(state.copy(theme = it)) }, { save(state.copy(exactCashTracking = it, inventoryNeedsReconciliation = it)) }, { dialog = "addcash" })
             }
         }
@@ -81,7 +85,12 @@ fun VndWalletApp() {
     if (dialog == "expense") ExpenseDialog(editing, state.exactCashTracking, { dialog = ""; editing = null }) { desc, price, paid, notes, change ->
         val old = editing
         val e = Expense(old?.id ?: UUID.randomUUID().toString(), desc, price, paid, old?.timestamp ?: System.currentTimeMillis(), notes, change)
-        save(state.copy(expenses = (state.expenses.filterNot { it.id == e.id } + e).sortedByDescending { it.timestamp }, inventoryNeedsReconciliation = state.inventoryNeedsReconciliation || (!state.exactCashTracking && paid > price)))
+        val oldHasNotes = old != null && (old.notesPaid.isNotEmpty() || old.changeNotes.isNotEmpty())
+        val restored = if (oldHasNotes) adjustDenominations(state.denominations, old!!, false) else state.denominations
+        val newHasNotes = notes.isNotEmpty() || change.isNotEmpty()
+        val updatedDenoms = if (state.exactCashTracking && newHasNotes) adjustDenominations(restored, e, true) else restored
+        val needsReconcile = (state.exactCashTracking && !newHasNotes) || (state.inventoryNeedsReconciliation && !oldHasNotes)
+        save(state.copy(expenses = (state.expenses.filterNot { it.id == e.id } + e).sortedByDescending { it.timestamp }, denominations = updatedDenoms, inventoryNeedsReconciliation = needsReconcile || (!state.exactCashTracking && paid > price)))
         dialog = ""; editing = null
     }
     if (dialog == "cash") DenomDialog(state.denominations, { dialog = "" }) { save(state.copy(denominations = it, inventoryNeedsReconciliation = false)); dialog = "" }
