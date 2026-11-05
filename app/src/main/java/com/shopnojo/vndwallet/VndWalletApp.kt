@@ -2,6 +2,7 @@ package com.shopnojo.vndwallet
 
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -252,7 +254,7 @@ fun VndWalletApp() {
                 if (notesProvided && !noteCountsValid) Text("Note totals must equal the amount paid and the calculated change.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
-    }, confirmButton = { Button(onClick = { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
+    }, confirmButton = { Button(onClick = { view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); save(desc.trim().ifBlank { "Purchase" }, price, paidText.toLongOrNull()?.takeIf { it >= price } ?: price, parsedPaidNotes, parsedChangeNotes) }, enabled = price > 0 && (paidText.isBlank() || paid >= price) && noteCountsValid) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
 
 private fun parseCounts(raw: String): Map<Long, Int> = raw.split(",").mapNotNull { part ->
