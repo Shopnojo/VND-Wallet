@@ -122,9 +122,10 @@ fun VndWalletApp() {
                     Text("${formatInr(s.availableBalance, s.rateInrPerVnd)} · INR equivalent", color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.height(18.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column { Text("Total cash in", color = MaterialTheme.colorScheme.onPrimary); Text(formatVnd(s.totalCashIn), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
+                        Column { Text("Initial cash", color = MaterialTheme.colorScheme.onPrimary); Text(formatVnd(s.initialCash), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
                         Column(horizontalAlignment = Alignment.End) { Text("Total spent", color = MaterialTheme.colorScheme.onPrimary); Text(formatVnd(s.totalSpent), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) }
                     }
+                    if (s.addedCash > 0) Text("Additional cash added: ${formatVnd(s.addedCash)}", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .85f), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
