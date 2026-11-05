@@ -15,7 +15,7 @@ A native Android companion for tracking Vietnamese dong cash and trip expenses, 
 
 ## Exchange rate
 
-The app fetches VND→INR from The Rates API, which publishes daily reference rates derived from central-bank data. The app checks for a new rate on launch when the saved rate date differs from the current UTC date and also supports manual refresh. If the request fails, the saved rate remains available offline. Weekends and public holidays may show the previous working day's reference rate.
+The app fetches VND→INR from The Rates API, which publishes daily reference rates derived from central-bank data. The app checks for a new rate on launch when the saved rate date differs from the current UTC date, schedules a network-constrained 24-hour background refresh through Android WorkManager, and supports manual refresh. If the request fails, the saved rate remains available offline. Weekends and public holidays may show the previous working day's reference rate.
 
 Reference rates are indicative only. Money changers, banks, cards and payment providers may use different buy/sell rates and fees. Confirm actual exchange rates before exchanging cash.
 
